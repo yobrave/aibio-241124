@@ -1,26 +1,25 @@
-"""Dating-app bio entry for the hamsyh one-line bio bounty."""
+"""Dating app bio mailer."""
+import json
 import os
-import sys
 from pathlib import Path
 
-LIMIT = 180  # gate ceiling for the one-line bio artifact
+SPAN = (1, 180)
+ICEBREAKER = "worst-bug"
 
 
-def emit(text: str) -> str:
-    words = [w for w in text.split()]
-    line = " ".join(words)
-    checks = {"nonblank": bool(line), "within": len(line) <= LIMIT}
-    if not all(checks.values()):
-        sys.exit("gate: " + repr(checks))
-    home = os.environ.get("MAKEFUN_OUTPUT_DIR") or os.path.join(
-        os.path.dirname(os.path.abspath(__file__)), "deliver")
-    os.makedirs(home, exist_ok=True)
-    with open(os.path.join(home, "entry.txt"), "w", encoding="utf-8",
-              newline="\n") as fh:
-        fh.write(line + "\n")
-    return f"staged {len(line)} chars -> {home}"
+def lines_of(root):
+    yield (Path(root).parent / "entry.txt").read_bytes().decode("utf-8").strip()
 
 
-if __name__ == "__main__":
-    root = Path(__file__).resolve().parent
-    print(emit(root.joinpath("entry.txt").read_text(encoding="utf-8")))
+def fits(text):
+    lo, hi = SPAN
+    return lo <= len(text) <= hi
+
+
+bio = next(lines_of(__file__))
+ok = fits(bio)
+if ok:
+    box = Path(os.environ.get("MAKEFUN_OUTPUT_DIR") or "out")
+    box.mkdir(parents=True, exist_ok=True)
+    (box / "entry.txt").write_bytes(bio.encode("utf-8"))
+print(json.dumps({"echo": "matched" if ok else "swiped-left", "len": len(bio)}))
